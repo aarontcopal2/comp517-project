@@ -1,0 +1,11 @@
+# A file with a list of domain addresses
+# Send mesages to each peer to start crawling from a start web address
+# The peer uses pagerank for webcrawling
+To do;
+    find protocols for p2p comminication
+        medium article
+        Time-To-Live counter in Gnutella
+        Flooding
+        random walking
+    pagerank
+    renote inter process communication
