@@ -5,15 +5,17 @@
 from bs4 import BeautifulSoup
 import requests
 import validators
+import ssl
+import urllib3
 
 # set initial data-structures
-depth, max_depth =1,10
+depth, max_depth =1,4
 urls = set() # we use set to maintain distinct urls
 new_urls = set() # we use set to maintain distinct urls
 completed_urls = []
 
 # get the list of urls from user
-user_inputs = ["https://stackoverflow.com/"]
+user_inputs = ["https://www.rice.edu/"]
 
 # append the urls to urls set
 for url in user_inputs:
@@ -24,10 +26,20 @@ while depth <= max_depth:
         url = urls.pop()
 
         # get url's html content
-        r = requests.get(url)
+        try:
+            response = requests.get(url)
+        except (requests.exceptions.InvalidSchema, ssl.SSLError, urllib3.exceptions.MaxRetryError,
+                 requests.exceptions.SSLError, requests.exceptions.ConnectionError) as e:
+            continue
+
+        # check if response is valid
+        if response.status_code != 200:
+            print("http request failed for: " + url)
+            print(response)
+            continue
 
         # use beautiful soup object to extract all hyperlinks
-        soup = BeautifulSoup(r.text, 'html.parser')
+        soup = BeautifulSoup(response.text, 'html.parser')
 
         for link in soup.find_all('a'):
             extracted_url = link.get('href')
