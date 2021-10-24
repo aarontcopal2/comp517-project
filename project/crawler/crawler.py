@@ -8,7 +8,7 @@ import json
 
 class Crawler:
     # default constructor
-    def __init__(self, user_inputs):
+    def __init__(self, user_inputs, output_filename):
         # set initial data-structures
         self.user_inputs = user_inputs
         self.depth, self.max_depth =1,2
@@ -17,6 +17,7 @@ class Crawler:
         self.completed_urls = []
         self.failed_urls = set()
         self.graph = {}
+        self.output_filename = output_filename
 
 
     def crawl(self):
@@ -81,9 +82,9 @@ class Crawler:
         # print("\ngraph output: ")
         # print(self.graph)
         self.graph = {k: list(v) for k, v in self.graph.items()}
-        with open('crawler_result.json', 'w') as fp:
+        with open(self.output_filename, 'w') as fp:
             json.dump(self.graph, fp)
 
 
-c= Crawler(["https://www.rice.edu/"])
+c= Crawler(["https://www.rice.edu/"], "crawler_result.json")
 c.crawl()
