@@ -32,3 +32,14 @@ from the investigation. It is anticipated that at the
 [midterm report](../midterm/README.md) you will a running
 prototype that you can demo. For the final we anticipate an
 independent project that can be run by the professor.
+
+
+## How to run it
+* Start a master peer using the script master_peer.py.
+* Start a peer using the script peer.py. Pass the ip_address:port and node id. Eg: python peer.py 127.0.0.1:8001 2 
+* The peer you just started will connect with master peer and exchange messages: `get_all_nodes_data` and `set_all_nodes_data`
+* After you receive and accept messages from both, you can start to send crawl requests to master peer.
+* type in `input.txt` to the master peer to send a crawl request. You should already have list of urls in the input.txt file and the master peer will send this info to all connected peers.
+* Watch the magic happen. Make sure you have the output/ directory checked out. 
+* You will find the `crawl_output.json` file inside the output directory which will have the combined results of crawling from all peers. 
+* After the crawling is done, the master peer will then shoot a request for pagerank and will combine them in the same directory with the file `pagerank_output` 
