@@ -106,8 +106,8 @@ class PeerClient(threading.Thread):
 		if os.path.exists(op_file):
 			os.remove(op_file)
 		
-		with open(input_file, 'r') as f:
-			crawl_output = json.load(crawl_output_file)
+		with open(crawl_output_file, 'r') as f:
+			crawl_output = json.loads(f.read())
 		
 		crawl_output_list = list(crawl_output.keys())
 
@@ -120,9 +120,9 @@ class PeerClient(threading.Thread):
 		
 
 		for i in range(node_range_lbound, node_range_ubound):
-			webpages[crawl_output_list[i]] = crawl_output[crawl_output_list[i]]
+			pagerank_input[crawl_output_list[i]] = crawl_output[crawl_output_list[i]]
 
-		Pagerank(tot_lines, webpages, PeerClient.output_dir + "/" + self.node.id + "_pagerank_output")
+		Pagerank(PeerClient.output_dir + "/" + self.node.id + "_pagerank_output", tot_lines, pagerank_input)
 		f =  open(op_file, "w+")
 				
 	# crawl the input  

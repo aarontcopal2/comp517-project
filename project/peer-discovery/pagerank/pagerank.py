@@ -1,6 +1,6 @@
 import json
 
-def pagerank(output_file_name, corpus_size, graph={}, d=0.85):
+def Pagerank(output_file_name, corpus_size, graph={}, d=0.85):
     n = len(graph)
     iter1 = {k: 1.0/corpus_size for k in graph}
     iter2 = iter1.copy()

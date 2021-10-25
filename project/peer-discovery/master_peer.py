@@ -17,6 +17,8 @@ sys.path.insert(0, '..') # Import the files where the modules are located
 
 from client import PeerClient
 
+final_crawl_output_file = PeerClient.output_dir + "/" + "_crawl_output.json"
+
 def stop_node(node):
 	if node is not None:
 		node.stop()
@@ -31,7 +33,7 @@ def send_crawl(master_node, input_file):
 	master_node.crawl(input_file)
 	while len(done_nodes) != len(tot_nodes):
 		time.sleep(5)
-		print("checking if nodes are done")
+		print("checking if crawling for nodes are done")
 		for node in tot_nodes:
 			if node not in done_nodes and os.path.isfile(PeerClient.output_dir + "/" + node.id + ".done"):
 				done_nodes.append(node)
@@ -46,20 +48,43 @@ def send_crawl(master_node, input_file):
 			 		crawl_output[link].extend(outlinks)
 			 	else :
 			 		crawl_output[link] = outlinks
-	print(crawl_output)
-	with open(PeerClient.output_dir + "/" + "_crawl_ouput.json", "w+") as f:
+	
+	with open(final_crawl_output_file, "w+") as f:
 		json.dump(crawl_output, f)
 	print("crawling complete")
-	return crawl_output
+	return final_crawl_output_file
 
-# def send_pagerank():
-# 	msg = PeerClient.msg
-# 	msg['message'] = "pagerank"
-# 	msg['value'] = s 
-# 	master_node.send_to_nodes(json.dumps(msg))
-
+def send_pagerank(master_node, input_file):
+	msg = PeerClient.msg
+	msg['message'] = "pagerank"
+	msg['value'] = input_file 
+	master_node.send_to_all_nodes(json.dumps(msg))
+	done_nodes = []
+	tot_nodes = master_node.get_all_connected_nodes()
+	master_node.pagerank(input_file)
+	while len(done_nodes) != len(tot_nodes):
+		time.sleep(5)
+		print("checking if pagerank for nodes are done")
+		for node in tot_nodes:
+			if node not in done_nodes and os.path.isfile(PeerClient.output_dir + "/" + node.id + ".done"):
+				done_nodes.append(node)
+				print(node.id + " done")
+				
+	pagerank_output = {}
+	done_nodes.append(master_node.node)
+	for node in done_nodes:
+		with open(PeerClient.output_dir + "/" + node.id + "_pagerank_output") as f:
+			 f_output = json.loads(f.read())
+			 for (link, pagerank) in f_output.items():
+			 	if link in pagerank_output:
+			 		pagerank_output[link] += pagerank
+			 	else :
+			 		pagerank_output[link] = pagerank
 	
-
+	with open(PeerClient.output_dir + "/" + "_pagerank_ouput", "w+") as f:
+		json.dump(pagerank_output, f)
+	
+	print("pagerank complete")
 
 def main():
 	master_node = None
@@ -80,7 +105,8 @@ def main():
 				stop_node(master_node)
 				os._exit(1)
 			elif re.search(".txt$", s) is not None:
-				send_crawl(master_node, s)
+				final_crawl_output_file = send_crawl(master_node, s)
+				send_pagerank(master_node, final_crawl_output_file)
 
 	except Exception as e:
 		print("some error occurred ----------------")
