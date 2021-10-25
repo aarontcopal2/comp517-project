@@ -10,6 +10,7 @@
 import sys
 import os
 import time
+import traceback
 sys.path.insert(0, '..') # Import the files where the modules are located
 
 from client import PeerClient
@@ -49,7 +50,7 @@ def main():
 			os._exit(1)
 
 	except Exception as e:
-		raise e
+		traceback.print_exception()
 		stop_node(peer_node)
 		os._exit(1)
 

@@ -82,9 +82,5 @@ class Crawler:
         # print("\ngraph output: ")
         # print(self.graph)
         self.graph = {k: list(v) for k, v in self.graph.items()}
-        with open(self.output_filename, 'w') as fp:
+        with open(self.output_filename, 'w+') as fp:
             json.dump(self.graph, fp)
-
-
-c= Crawler(["https://www.rice.edu/"], "crawler_result.json")
-c.crawl()

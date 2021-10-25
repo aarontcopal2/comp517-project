@@ -16,7 +16,6 @@ def pagerank(output_file_name, corpus_size, graph={}, d=0.85):
         iter1 = iter2.copy()
     with open(output_file_name, 'w') as fp:
         json.dump(iter1, fp)
-
 #with open('../crawler/crawler_result.json', 'r') as fp:
 #    graph = json.load(fp)
 #pagerank("pagerank_result.json", len(graph), graph, 0.85)

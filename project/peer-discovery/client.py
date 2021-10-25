@@ -1,18 +1,25 @@
 # import the threading module
 import threading
 import time
-from node import Node
-from nodeconnection import NodeConnection
 import json
 import os
+import traceback
+import sys
+sys.path.insert(0, '..') # Import the files where the modules are located
+
+from node import Node
+from nodeconnection import NodeConnection
+from crawler.crawler import Crawler
+from pagerank.pagerank import Pagerank
 
 class PeerClient(threading.Thread):
 	msg = {"message":"", "value":""}
 	send_all_nodes_msg = "send_all_nodes_data"
 	get_all_nodes_msg = "get_all_nodes_data"
 	crawl_msg = "crawl"
+	pagerank_msg = "pagerank"
 	master_node_id = 1
-	output_dir = "/output"
+	output_dir = "./output"
 
 	def __init__(self, host_ip, host_port, host_id, debug=False):
 		threading.Thread.__init__(self)
@@ -43,24 +50,8 @@ class PeerClient(threading.Thread):
 		self.connect_with_node(node_ip, node_port)
 		self.node.print_connections()
 		time.sleep(5)
-		self.get_all_nodes_fromtpu_master()
+		self.get_all_nodes_from_master()
 
-	# crawl the input  
-	def crawl(self, data):
-		lines = []
-		op_file = out_dir + "/" + self.id + "./done"
-		os.remove(op_file)
-		with open(data['value'], 'r') as f:
-    		lines = f.readlines()
-    	tot_lines = len(lines)
-    	n = len(get_all_connected_nodes())
-    	webpages=[]
-    	for i in range((tot_lines/n)*self.id , min((tot_lines/n)*(self.id+1),tot_lines)):
-    		webpages.append(tot_lines[i])
-    	
-    	c = Crawler(webpages, output_dir + "/" + self.id + "_crawl_output.json")
-    	c.crawl()
-    	f =  open(op_file, "w+")
 
 	def send_to_node(self, n, data):
 		n=str(n)
@@ -70,8 +61,8 @@ class PeerClient(threading.Thread):
 		self.node.send_to_nodes(json.dumps(data), exclude)
 
 	def get_all_connected_nodes(self):
-		s = self.node.nodes_inbound:
-		s += sel0f.node.nodes_outbound 
+		s = self.node.nodes_inbound
+		s += self.node.nodes_outbound 
 		return s
 	
 	def send_info_abt_all_nodes(self, to_node, data):
@@ -89,6 +80,9 @@ class PeerClient(threading.Thread):
 		elif data['message'] == PeerClient.get_all_nodes_msg:
 			self.connect_with_nodes(data)
 		elif data['message'] == PeerClient.crawl_msg:
+			self.crawl(data['value'])
+		elif data['message'] == PeerClient.pagerank_msg:
+			self.pagerank(data['value'])
 		
 	def get_all_nodes_from_master(self):
 		msg = {}
@@ -102,3 +96,53 @@ class PeerClient(threading.Thread):
 		except Exception as e:
 			print("incorrect msg from peer node: " + node.id)
 			print(e)
+			traceback.print_exception()
+
+	# pagerank the crawl output  
+	def pagerank(self, crawl_output_file):
+		crawl_output = {}
+		crawl_output_list = []
+		op_file = PeerClient.output_dir + "/" + self.node.id + ".done"
+		if os.path.exists(op_file):
+			os.remove(op_file)
+		
+		with open(input_file, 'r') as f:
+			crawl_output = json.load(crawl_output_file)
+		
+		crawl_output_list = list(crawl_output.keys())
+
+		tot_lines = len(crawl_output)
+		n = len(self.get_all_connected_nodes())
+		
+		pagerank_input = {}
+		node_range_lbound = int(tot_lines/n) * (int(self.node.id)-1)
+		node_range_ubound = min(node_range_lbound + int(tot_lines/n), tot_lines) 
+		
+
+		for i in range(node_range_lbound, node_range_ubound):
+			webpages[crawl_output_list[i]] = crawl_output[crawl_output_list[i]]
+
+		Pagerank(tot_lines, webpages, PeerClient.output_dir + "/" + self.node.id + "_pagerank_output")
+		f =  open(op_file, "w+")
+				
+	# crawl the input  
+	def crawl(self, input_file):
+		lines = []
+		op_file = PeerClient.output_dir + "/" + self.node.id + ".done"
+		if os.path.exists(op_file):
+			os.remove(op_file)
+		with open(input_file, 'r') as f:
+			lines = f.readlines()
+		tot_lines = len(lines)
+		n = len(self.get_all_connected_nodes())
+
+		webpages=[]
+		node_range_lbound = int(tot_lines/n) * (int(self.node.id)-1)
+		node_range_ubound = min(node_range_lbound + int(tot_lines/n), tot_lines) 
+
+		for i in range(node_range_lbound, node_range_ubound):
+			webpages.append(lines[i])
+
+		c = Crawler(webpages, PeerClient.output_dir + "/" + self.node.id + "_crawl_output.json")
+		c.crawl()
+		f =  open(op_file, "w+")

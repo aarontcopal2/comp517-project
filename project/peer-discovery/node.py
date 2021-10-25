@@ -124,13 +124,13 @@ class Node(threading.Thread):
             if n in exclude:
                 self.debug_print("Node send_to_nodes: Excluding node in sending the message")
             else:
-                self.send_to_node(n, data)
+                self.send_to_node(n.id, data)
 
         for n in self.nodes_outbound:
             if n in exclude:
                 self.debug_print("Node send_to_nodes: Excluding node in sending the message")
             else:
-                self.send_to_node(n, data)
+                self.send_to_node(n.id, data)
 
     def send_to_node(self, n, data):
         """ Send the data to the node n if it exists."""

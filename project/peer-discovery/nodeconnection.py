@@ -135,7 +135,7 @@ class NodeConnection(threading.Thread):
             except Exception as e:
                 self.terminate_flag.set() # Exception occurred terminating the connection
                 self.main_node.debug_print('Unexpected error')
-                self.main_node.debug_print(e)
+                self.main_node.debug_print(str(e))
 
             # BUG: possible buffer overflow when no EOT_CHAR is found => Fix by max buffer count or so?
             if chunk != b'':
