@@ -74,8 +74,22 @@ We propose to complete the milestones in 2 steps:-
 
 **Evaluation**
 
-- We will evaluate the running time of our single node page rank algorithm for a large subset of keywords and web pages
-- Evaluate the time taken for peer discovery and the data bandwidth consumed.
+For performance evaluation, we need to evaluate the components/algorthms of our system (the components implemented for midterm): crawler and pagerank
+
+##### Execution results of crawler
+
+| # input urls | # nodes | Search depth | Time (sec) |
+|--------------|---------|--------------|------------|
+| 2            | 1       | 2            | 49.82      |
+| 2            | 2       | 2            | 30.51      |
+| 2            | 1       | 3            | 733.52     |
+| 2            | 2       | 3            | 249.48     |
+
+P.S: The two urls used as input were https://www.rice.edu, https://www.stackoverflow.com
+
+
+##### Execution results of pagerank
+The pagerank implementation that we use has good performance and completes instantaneously. Thus we find that its needless to evaluate the execution time of pagerank.
 
 ## Grading Rubric
 
