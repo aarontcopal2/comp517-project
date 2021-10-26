@@ -30,15 +30,23 @@ def send_crawl(master_node, input_file):
 	master_node.send_to_all_nodes(json.dumps(msg))
 	done_nodes = []
 	tot_nodes = master_node.get_all_connected_nodes()
+	# start of crawling time
+	start_time = time.time()
+	print("master peer crawling")
 	master_node.crawl(input_file)
+	print("master to peer crawling done!")
 	while len(done_nodes) != len(tot_nodes):
-		time.sleep(5)
+		time.sleep(2)
 		print("checking if crawling for nodes are done")
 		for node in tot_nodes:
 			if node not in done_nodes and os.path.isfile(PeerClient.output_dir + "/" + node.id + ".done"):
 				done_nodes.append(node)
 				print(node.id + " done")
 	crawl_output = {}
+
+	# end of crawling time
+	end_time = time.time()
+	print("Time taken for crawl operation: " + str(end_time - start_time))
 	done_nodes.append(master_node.node)
 	for node in done_nodes:
 		with open(PeerClient.output_dir + "/" + node.id + "_crawl_output.json") as f:

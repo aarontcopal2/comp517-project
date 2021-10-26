@@ -54,3 +54,20 @@ independent project that can be run by the professor.
     to the master peer to send a crawl request. You should already have list of urls in the input.txt file and the master peer will send this info to all connected peers
 6. Watch the magic happen. Make sure you have the output/ directory checked out. You will find the `crawl_output.json` file inside the output directory which will have the combined results of crawling from all peers 
 7. After the crawling is done, the master peer will then shoot a request for pagerank and will combine them in the same directory with the file `pagerank_output` 
+
+
+## Evaluation
+For performance evaluation, we need to evaluate the components/algorthms of our system (the components implemented for midterm): crawler and pagerank
+
+##### Execution results of crawler
+
+| # input urls | # nodes | Search depth | Time (sec) |
+|--------------|---------|--------------|------------|
+| 2            | 1       | 2            | 49.82      |
+| 2            | 2       | 2            | 30.51      |
+
+P.S: The two urls used as input were https://www.rice.edu, https://www.stackoverflow.com
+
+
+##### Execution results of pagerank
+The pagerank implementation that we use has good performance and completes instantaneously. Thus we find that its needless to evaluate the execution time of pagerank.
