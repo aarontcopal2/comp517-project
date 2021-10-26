@@ -66,7 +66,7 @@ For performance evaluation, we need to evaluate the components/algorthms of our 
 | 2            | 1       | 2            | 49.82      |
 | 2            | 2       | 2            | 30.51      |
 | 2            | 1       | 3            | 733.52     |
-| 2            | 2       | 3            |            |
+| 2            | 2       | 3            | 249.48     |
 
 P.S: The two urls used as input were https://www.rice.edu, https://www.stackoverflow.com
 
