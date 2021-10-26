@@ -63,7 +63,7 @@ class PeerClient(threading.Thread):
 	def get_all_connected_nodes(self):
 		s = self.node.nodes_inbound
 		s += self.node.nodes_outbound 
-		return s
+		return set(s)
 	
 	def send_info_abt_all_nodes(self, to_node, data):
 		s = self.get_all_connected_nodes()
@@ -98,6 +98,15 @@ class PeerClient(threading.Thread):
 			print(e)
 			traceback.print_exception()
 
+	def get_ranges(self, tot_lines):
+		n = len(self.get_all_connected_nodes())+1
+		node_id = int(self.node.id)-1
+		node_range_lbound = int(tot_lines/n) * (node_id)
+		node_range_ubound = min(node_range_lbound + int(tot_lines/n), tot_lines)
+		if tot_lines < n and node_id < tot_lines:
+			return node_id, node_id+1  
+		return node_range_lbound, node_range_ubound
+
 	# pagerank the crawl output  
 	def pagerank(self, crawl_output_file):
 		crawl_output = {}
@@ -112,13 +121,10 @@ class PeerClient(threading.Thread):
 		crawl_output_list = list(crawl_output.keys())
 
 		tot_lines = len(crawl_output)
-		n = len(self.get_all_connected_nodes())
 		
 		pagerank_input = {}
-		node_range_lbound = int(tot_lines/n) * (int(self.node.id)-1)
-		node_range_ubound = min(node_range_lbound + int(tot_lines/n), tot_lines) 
+		node_range_lbound, node_range_ubound = self.get_ranges(tot_lines)
 		
-
 		for i in range(node_range_lbound, node_range_ubound):
 			pagerank_input[crawl_output_list[i]] = crawl_output[crawl_output_list[i]]
 
@@ -134,15 +140,15 @@ class PeerClient(threading.Thread):
 		with open(input_file, 'r') as f:
 			lines = f.readlines()
 		tot_lines = len(lines)
-		n = len(self.get_all_connected_nodes())
+		n = len(self.get_all_connected_nodes())+1
 
 		webpages=[]
-		node_range_lbound = int(tot_lines/n) * (int(self.node.id)-1)
-		node_range_ubound = min(node_range_lbound + int(tot_lines/n), tot_lines) 
+		node_range_lbound, node_range_ubound = self.get_ranges(tot_lines)
 
 		for i in range(node_range_lbound, node_range_ubound):
-			webpages.append(lines[i])
+			webpages.append(lines[i].strip())
 
 		c = Crawler(webpages, PeerClient.output_dir + "/" + self.node.id + "_crawl_output.json")
 		c.crawl()
 		f =  open(op_file, "w+")
+		print("crawling for node: "+ self.node.id + " done")
