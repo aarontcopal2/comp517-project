@@ -38,20 +38,19 @@ independent project that can be run by the professor.
 1. Move to the main directory
 `cd peer-discovery`
 
-2. Create a folder for saving ouptut files
+2. Create folder for saving ouptut files
 `mkdir output`
 
-2. Start a master peer using the script
+3. Start a master peer using the script
 `python master_peer.py`
 
-3. Start a peer using the script peer.py. Pass the ip_address:port and node id. Eg: 
+4. Start a peer using the script peer.py. Pass the ip_address:port and node id. Eg: 
 `python peer.py 127.0.0.1:8001 2`
 
     (The peer you just started will connect with master peer and exchange messages)
 
-4. After master and peer nodes establish connection, you can start to send crawl requests to master peer. Type in
+5. After master and peer nodes establish connection, you can start to send crawl requests to master peer. Type in
 `input.txt`
-    to the master peer to send a crawl request. You should already have list of urls in the input.txt file and the master peer will send this info to all connected peers.
-* Watch the magic happen. Make sure you have the output/ directory checked out. 
-* You will find the `crawl_output.json` file inside the output directory which will have the combined results of crawling from all peers. 
-* After the crawling is done, the master peer will then shoot a request for pagerank and will combine them in the same directory with the file `pagerank_output` 
+    to the master peer to send a crawl request. You should already have list of urls in the input.txt file and the master peer will send this info to all connected peers
+6. Watch the magic happen. Make sure you have the output/ directory checked out. You will find the `crawl_output.json` file inside the output directory which will have the combined results of crawling from all peers 
+7. After the crawling is done, the master peer will then shoot a request for pagerank and will combine them in the same directory with the file `pagerank_output` 
