@@ -1,10 +1,10 @@
 import pyodbc 
 
-databaseName = 'hw1'
-username = 'comp517'
-password = 'comp517'
-server = 'DESKTOP-J68AUP8'
-driver= '{SQL Server Native Client 11.0}'
+databaseName = 'master'
+username = 'comp517-1'
+password = 'abcd'
+server = 'tcp:168.5.62.67;PORT=1433'
+driver= '{SQL Server}'
 CONNECTION_STRING = 'DRIVER='+driver+';SERVER='+server+';DATABASE='+databaseName+';UID='+username+';PWD='+ password
 
 
