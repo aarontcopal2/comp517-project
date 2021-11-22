@@ -22,6 +22,7 @@ final_crawl_output_file = PeerClient.output_dir + "/" + "_crawl_output.json"
 def stop_node(node):
 	if node is not None:
 		node.stop()
+		node.join()
 
 def send_crawl(master_node, input_file):
 	msg = PeerClient.msg
@@ -33,15 +34,14 @@ def send_crawl(master_node, input_file):
 	# start of crawling time
 	start_time = time.time()
 	print("master peer crawling")
+	master_node.crawl_started = 1
 	master_node.crawl(input_file)
 	print("master to peer crawling done!")
-	while len(done_nodes) != len(tot_nodes):
-		time.sleep(2)
-		print("checking if crawling for nodes are done")
-		for node in tot_nodes:
-			if node not in done_nodes and os.path.isfile(PeerClient.output_dir + "/" + node.id + ".done"):
-				done_nodes.append(node)
-				print(node.id + " done")
+	while(False == master_node.check_if_crawl_is_done()):
+		time.sleep(5)
+		
+	master_node.crawl_started = 0
+
 	crawl_output = {}
 
 	# end of crawling time
@@ -97,7 +97,6 @@ def send_pagerank(master_node, input_file):
 def main():
 	master_node = None
 	try:
-
 		# host_ip = sys.argv[1].split(':')[0]
 		# host_port = int(sys.argv[1].split(':')[1])
 
