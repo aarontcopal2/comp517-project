@@ -17,6 +17,24 @@ sys.path.insert(0, '..') # Import the files where the modules are located
 
 from client import PeerClient
 
+import pyodbc 
+import random 
+
+databaseName = 'master'
+username = 'comp517-1'
+password = 'abcd'
+server = 'tcp:168.5.62.67;PORT=1433'
+driver= '{SQL Server}'
+CONNECTION_STRING = 'DRIVER='+driver+';SERVER='+server+';DATABASE='+databaseName+';UID='+username+';PWD='+ password
+
+conn = pyodbc.connect(CONNECTION_STRING)
+
+cursor = conn.cursor()
+cursor.execute('SELECT * FROM features')
+
+# for i in cursor:
+#     print(i)
+
 final_crawl_output_file = PeerClient.output_dir + "/" + "_crawl_output.json"
 
 def stop_node(node):
@@ -28,6 +46,13 @@ def send_crawl(master_node, input_file):
 	msg = PeerClient.msg
 	msg['message'] = "crawl" 
 	msg['value'] = input_file
+
+	with open(input_file) as f:
+		x = f.read()
+
+	job_id = random.randrange(1,10000)
+	cursor = conn.cursor()
+	cursor.execute('INSERT INTO job values (' + job_id + ',"' + x + '")')
 	master_node.send_to_all_nodes(json.dumps(msg))
 	done_nodes = []
 	tot_nodes = master_node.get_all_connected_nodes()
