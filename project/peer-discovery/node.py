@@ -52,13 +52,13 @@ class Node(threading.Thread):
         self.callback = callback
 
         # Nodes that have established a connection with this node
-        self.nodes_inbound = []  # Nodes that are connect with us N->(US)
+        self.nodes_inbound = set()  # Nodes that are connect with us N->(US)
 
         # Nodes that this nodes is connected to
-        self.nodes_outbound = []  # Nodes that we are connected to (US)->N
+        self.nodes_outbound = set()  # Nodes that we are connected to (US)->N
 
         # A list of nodes that should be reconnected to whenever the connection was lost
-        self.reconnect_to_nodes = []
+        self.reconnect_to_nodes = set()
 
         # Create a unique ID for each node if the ID is not given.
         if id == None:
@@ -122,7 +122,7 @@ class Node(threading.Thread):
         self.message_count_send = self.message_count_send + 1
         for n in self.nodes_inbound:
             if n in exclude:
-                self.debug_print("Node send_to_nodes: Excluding node in sending the message")
+                self.debug_print("Node send_to_nodes: Excluding node" + n.id +" in sending the message")
             else:
                 self.send_to_node(n.id, data)
 
@@ -189,13 +189,13 @@ class Node(threading.Thread):
             thread_client = self.create_new_connection(sock, connected_node_id, host, port, connected_node_host, connected_node_port)
             thread_client.start()
 
-            self.nodes_outbound.append(thread_client)
+            self.nodes_outbound.add(thread_client)
             self.outbound_node_connected(thread_client)
 
             # If reconnection to this host is required, it will be added to the list!
             if reconnect:
                 self.debug_print("connect_with_node: Reconnection check is enabled on node " + host + ":" + str(port))
-                self.reconnect_to_nodes.append({
+                self.reconnect_to_nodes.add({
                     "host": host, "port": port, "tries": 0
                 })
 
@@ -209,7 +209,6 @@ class Node(threading.Thread):
         if node in self.nodes_outbound:
             self.node_disconnect_with_outbound_node(node)
             node.stop()
-
         else:
             self.debug_print("Node disconnect_with_node: cannot disconnect with a node with which we are not connected.")
 
@@ -273,7 +272,7 @@ class Node(threading.Thread):
                     thread_client = self.create_new_connection(connection, connected_node_id, client_address[0], client_address[1], connected_node_host, connected_node_port)
                     thread_client.start()
 
-                    self.nodes_inbound.append(thread_client)
+                    self.nodes_inbound.add(thread_client)
                     self.inbound_node_connected(thread_client)
 
                 else:
@@ -329,12 +328,15 @@ class Node(threading.Thread):
         self.debug_print("node_disconnected: " + node.id)
 
         if node in self.nodes_inbound:
-            del self.nodes_inbound[self.nodes_inbound.index(node)]
+            self.nodes_inbound.remove(node)
             self.inbound_node_disconnected(node)
 
         if node in self.nodes_outbound:
-            del self.nodes_outbound[self.nodes_outbound.index(node)]
+            self.nodes_outbound.remove(node)
             self.outbound_node_disconnected(node)
+
+        if self.callback is not None:
+            self.callback("node_disconnected", self, node, {})
 
     def inbound_node_disconnected(self, node):
         """This method is invoked when a node, that was previously connected with us, is in a disconnected
