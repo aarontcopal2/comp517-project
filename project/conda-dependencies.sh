@@ -6,3 +6,4 @@ conda activate Comp517
 pip install beautifulsoup4
 pip install validators
 pip install requests
+pip install pyodbc
