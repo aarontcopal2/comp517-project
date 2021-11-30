@@ -11,7 +11,7 @@ class Crawler:
     def __init__(self, user_inputs, output_filename):
         # set initial data-structures
         self.user_inputs = user_inputs
-        self.depth, self.max_depth =1,3
+        self.depth, self.max_depth =1,2
         self.urls = set() # we use set to maintain distinct urls
         self.new_urls = set() # we use set to maintain distinct urls
         self.completed_urls = []
@@ -82,5 +82,3 @@ class Crawler:
         # print("\ngraph output: ")
         # print(self.graph)
         self.graph = {k: list(v) for k, v in self.graph.items()}
-        with open(self.output_filename, 'w+') as fp:
-            json.dump(self.graph, fp)

@@ -1,6 +1,6 @@
 import json
 
-def Pagerank(output_file_name, corpus_size, graph={}, d=0.85):
+def Pagerank(corpus_size, graph={}, d=0.85):
     n = len(graph)
     iter1 = {k: 1.0/corpus_size for k in graph}
     iter2 = iter1.copy()
@@ -14,8 +14,7 @@ def Pagerank(output_file_name, corpus_size, graph={}, d=0.85):
         if sum([abs(iter2[i] - iter1[i]) for i in iter1]) < 1e-10:
             break
         iter1 = iter2.copy()
-    with open(output_file_name, 'a') as fp:
-        json.dump(iter1, fp)
+    return iter1
 #with open('../crawler/crawler_result.json', 'r') as fp:
 #    graph = json.load(fp)
 #pagerank("pagerank_result.json", len(graph), graph, 0.85)

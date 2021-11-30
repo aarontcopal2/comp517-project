@@ -6,11 +6,25 @@ import os
 import traceback
 import sys
 from node import Node
+import pyodbc
 from nodeconnection import NodeConnection
 from crawler.crawler import Crawler
 from pagerank.pagerank import Pagerank
 
 sys.path.insert(0, '..') # Import the files where the modules are located
+
+def sanitize_url(k):
+	url = k
+	if url.startswith("https://"):
+		url = url[8:]
+	elif url.startswith("http://"):
+		url = url[7:]
+	if url.startswith("www."):
+		url = url[4:]
+	return url
+
+def sanitize(graph):
+	return {sanitize_url(k):[sanitize_url(x) for x in graph[k]] for k in graph}
 
 class PeerClient(threading.Thread):
 	msg = {"message":"", "value":""}
@@ -23,6 +37,14 @@ class PeerClient(threading.Thread):
 	node_left_msg = "node_crashed"
 	master_node_id = 1
 	output_dir = "./output"
+	jobid = None
+	databaseName = 'hw1'
+	username = 'comp517'
+	password = 'comp517'
+	server = 'tcp:127.0.0.1;PORT=1433'
+	driver= '{SQL Server}'
+	CONNECTION_STRING = 'DRIVER='+driver+';SERVER='+server+';DATABASE='+databaseName+';UID='+username+';PWD='+ password
+	conn = pyodbc.connect(CONNECTION_STRING)
 
 
 	def __init__(self, host_ip, host_port, host_id, debug=False):
@@ -146,7 +168,7 @@ class PeerClient(threading.Thread):
 		print("all connected nodes sorted")
 		return cn_list.index(int(self.node.id))
 
-	def get_uncommitted_work(self, node_id):
+	def get_uncommitted_work(self, node_id, jobid):
 		return self.get_crawl_input(int(node_id))
 
 	def get_new_work(self):
@@ -162,26 +184,112 @@ class PeerClient(threading.Thread):
 		return new_urls[lrange : urange]
 
 	def get_crawl_input(self, node_id):
-		if node_id == 0:
-			return [i for i in range(100)]
-			# return ['https://www.rice.edu']
-		elif node_id == 1:
-			return [i for i in range(100, 200)]
-		else:
-			return [i for i in range(200,300)] 
+
+		cursor = self.conn.cursor()
+		cursor.execute('SELECT urls from job WHERE jobid='+str(self.jobid))
+		urls = cursor.fetchone()[0]
+		self.conn.commit()
+		cursor.close()
+		urls_list = urls.split(',')
+		print("urls = ", urls_list)
+		n = 1+len(self.get_all_connected_nodes())
+		chunk_size = int((len(urls_list)+n-1)/n)
+		print(chunk_size, (node_id-1)*chunk_size, node_id*chunk_size)
+		print(urls_list[(node_id)*chunk_size:(node_id+1)*chunk_size])
+		return urls_list[(node_id)*chunk_size:(node_id+1)*chunk_size]
 		# 	return ['https://www.stackoverflow.com']
 
+	def get_pagerank_input(self, node_id):
+		cursor = self.conn.cursor()
+		n = 1+len(self.get_all_connected_nodes())
+		query = "SELECT MAX(id) FROM graph where jobid="+str(self.jobid)
+		cursor.execute(query)
+		no_urls = cursor.fetchone()[0]
+		chunk_size = int((no_urls+n-1)/n)
+		cursor.close()
+		cursor = self.conn.cursor()
+		query = "SELECT url, link FROM graph where jobid="+str(self.jobid)+" and id between " + str(node_id*chunk_size+1) + " and " + str((node_id+1)*chunk_size)
+		print(query)
+		cursor.execute(query)
+		graph = cursor.fetchall()
+		graph = {x[0]:x[1] for x in graph}
+		cursor.close()
+		return graph, no_urls
+
+	def set_pagerank_status_started(self, url_subset):
+		cursor = self.conn.cursor()
+		values = (self.jobid, ",".join(url_subset), int(self.node.id)-1, 1)
+		query = "INSERT INTO pr_status(jobid, url_subset, nodeid, status) VALUES"+str(values)
+		cursor.execute(query);
+		self.conn.commit()
+		cursor.close()
+
+	def save_pagerank_result(self, pr):
+		cursor = self.conn.cursor()
+		query = "SELECT url, pr from pr where jobid="+str(self.jobid) + " and url in ('" + "','".join(pr.keys()) + "')"
+		print(query)
+		cursor.execute(query)
+		res = cursor.fetchall()
+		res = {x[0]:x[1] for x in res}
+
+		for url in pr:
+			if url in res:
+				pr[url]+=res[url]
+		query = "DELETE from PR WHERE jobid="+str(self.jobid)+" AND url in ('" + "','".join(pr.keys()) + "')"
+		cursor.execute(query)
+		print(pr)
+		values = [(self.jobid, k, pr[k]) for k in pr]
+		values_str = ",".join([str(x) for x in values])
+		query = "INSERT into PR(jobid, url, pr) values" + values_str
+		cursor.execute(query)
+		query = "UPDATE pr_status SET status=2 where jobid="+str(self.jobid)+" and nodeid=" + str(int(self.node.id)-1)
+		self.conn.commit()
+		cursor.close()
 
 	# pagerank the crawl output  
-	def pagerank(self, crawl_output_file):
-		crawl_output_list = []
-		pagerank_input = {}
+	def pagerank(self, jobid):
+		self.jobid = jobid
 		node_id = int(self.node.id)-1
-		# Pagerank(self.node.id)
+		graph, no_urls = self.get_pagerank_input(node_id)
+		self.set_pagerank_status_started(graph.keys())
+		pr = Pagerank(no_urls, graph)
+		self.save_pagerank_result(pr)
+
+	def save_crawl_result(self, graph):
+		cursor = self.conn.cursor()
+
+		for url in graph:
+			print("started writing to db")
+			cursor.execute("SELECT link from graph where jobid="+str(self.jobid) + " and url='" + url + "'")
+			res = cursor.fetchone()
+			if res == None or len(res)==0:
+				query = "INSERT into graph(jobid, url, link) values("+str(self.jobid) + ",'" + url + "','" + ",".join(graph[url])[:8000] + "');"
+				print(query)
+				cursor.execute(query)
+			else:
+				old_links = res[0]
+				query = "UPDATE graph SET link='" + (old_links + "," + ",".join(graph[url]))[:8000] + "' where url='"+url+"' and jobid=" + str(jobid)
+				print(query,)
+				cursor.execute(query)
+			print("Finished writing 1 url to db")
+		query = "UPDATE crawl_status SET status=2 WHERE jobid="+str(self.jobid)+" AND url in ('"+ "','".join(graph.keys()) + "')"
+		print(query)
+		cursor.execute(query);
+		self.conn.commit()
+		cursor.close()
+
+	def set_crawl_status_started(self, url):
+		cursor = self.conn.cursor()
+		values = (self.jobid, url, 1, int(self.node.id)-1)
+		query = "INSERT INTO crawl_status(jobid, url, status, nodeid) VALUES"+str(values)
+		cursor.execute(query);
+		self.conn.commit()
+		cursor.close()
 				
 	# crawl the input  
-	def crawl(self, input_file):
+	def crawl(self, jobid):
 		self.crawl_started = 1
+		self.jobid = jobid
 		node_id = int(self.node.id)-1
 		lines = self.get_crawl_input(node_id)
 
@@ -198,10 +306,13 @@ class PeerClient(threading.Thread):
 					self.new_nodes_list =  []
 					print("new work")
 					print(lines)
-			print(lines[i])
-			time.sleep(5)
-			# c = Crawler([lines[i].strip()], self.node.id)
-			# c.crawl()
+			url = lines[i].strip()
+			c = Crawler([url], self.node.id)
+			self.set_crawl_status_started(url)
+			c.crawl()
+			#print(c.graph)
+			s_graph = sanitize(c.graph)
+			self.save_crawl_result(s_graph)
 		print("crawling for node: "+ self.node.id + " done")
 		if int(self.node.id) != PeerClient.master_node_id:
 			self.crawl_started = 0
