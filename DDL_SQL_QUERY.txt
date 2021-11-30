@@ -1,0 +1,35 @@
+CREATE TABLE job (
+    jobid int IDENTITY (1,1) NOT NULL,
+    urls varchar(2000)
+);
+
+
+drop table if exists crawl_status;
+CREATE TABLE crawl_status (
+    jobid int NOT NULL,
+    url varchar(2000),
+	status int,
+	nodeid int
+);
+
+drop table if exists graph
+CREATE TABLE graph (
+	id int IDENTITY (1,1) NOT NULL,
+    jobid int NOT NULL,
+    url varchar(2000),
+	link varchar(8000)
+);
+
+CREATE TABLE pr (
+    jobid int NOT NULL,
+    url varchar(2000),
+	pr float 
+);
+
+drop table if exists pr_status;
+CREATE TABLE pr_status (
+    jobid int NOT NULL,
+    url_subset varchar(8000),
+	nodeid int,
+	status int
+);
