@@ -1,2 +1,6 @@
-https://www.rice.edu
+https://www.twitter.com
+https://www.facebook.com
+https://www.github.com
+https://www.google.com
 https://www.stackoverflow.com
+https://www.amazon.com

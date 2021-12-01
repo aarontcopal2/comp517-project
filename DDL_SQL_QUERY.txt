@@ -17,7 +17,8 @@ CREATE TABLE graph (
 	id int IDENTITY (1,1) NOT NULL,
     jobid int NOT NULL,
     url varchar(2000),
-	link varchar(8000)
+	link varchar(8000),
+    nodeid int NOT NULL
 );
 
 CREATE TABLE pr (

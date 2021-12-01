@@ -20,7 +20,7 @@ from client import PeerClient
 import pyodbc 
 import random 
 
-databaseName = 'hw1'
+databaseName = 'master'
 username = 'comp517'
 password = 'comp517'
 server = 'tcp:127.0.0.1;PORT=1433'

@@ -38,7 +38,7 @@ class PeerClient(threading.Thread):
 	master_node_id = 1
 	output_dir = "./output"
 	jobid = None
-	databaseName = 'hw1'
+	databaseName = 'master'
 	username = 'comp517'
 	password = 'comp517'
 	server = 'tcp:127.0.0.1;PORT=1433'
@@ -115,10 +115,13 @@ class PeerClient(threading.Thread):
 		if self.crawl_started == 1:
 			msg['message'] = PeerClient.node_joined_msg 
 			msg['value'] = to_node.id
-			self.send_to_all_nodes(msg, exclude=[to_node])
+			self.send_to_all_nodes(json.dumps(msg), exclude=[to_node])
 			time.sleep(5)
 			msg['message'] = PeerClient.crawl_msg 
-			msg['value'] = "input.txt"
+			if self.crawl_started == 1:
+				msg['value'] = self.jobid
+			else: 
+				msg['value']  = 0
 			self.send_to_node(to_node.id, json.dumps(msg))
 			
 	def check_node_message(self, from_node, data):
@@ -174,7 +177,7 @@ class PeerClient(threading.Thread):
 	def get_new_work(self):
 		new_urls = []
 		for i in range(len(self.new_nodes_list)):
-			new_urls.extend(self.get_uncommitted_work(self.new_nodes_list[i].id))	
+			new_urls.extend(self.get_uncommitted_work(self.new_nodes_list[i].id, self.jobid))	
 		rank = self.get_rank()
 		tot_urls = len(new_urls)
 		cns = len(self.get_all_connected_nodes()) + 1
@@ -202,13 +205,17 @@ class PeerClient(threading.Thread):
 	def get_pagerank_input(self, node_id):
 		cursor = self.conn.cursor()
 		n = 1+len(self.get_all_connected_nodes())
-		query = "SELECT MAX(id) FROM graph where jobid="+str(self.jobid)
+		query = "SELECT count(*) FROM graph where jobid="+str(self.jobid)
 		cursor.execute(query)
-		no_urls = cursor.fetchone()[0]
+		no_urls = int(cursor.fetchone()[0])
+		query = "SELECT TOP 1 id FROM graph where jobid="+str(self.jobid)
+		print(query, no_urls)
+		cursor.execute(query)
+		start_id = int(cursor.fetchone()[0])
 		chunk_size = int((no_urls+n-1)/n)
 		cursor.close()
 		cursor = self.conn.cursor()
-		query = "SELECT url, link FROM graph where jobid="+str(self.jobid)+" and id between " + str(node_id*chunk_size+1) + " and " + str((node_id+1)*chunk_size)
+		query = "SELECT url, link FROM graph where jobid="+str(self.jobid)+" and id between " + str(start_id + node_id*chunk_size+1) + " and " + str(start_id + (node_id+1)*chunk_size)
 		print(query)
 		cursor.execute(query)
 		graph = cursor.fetchall()
@@ -227,7 +234,6 @@ class PeerClient(threading.Thread):
 	def save_pagerank_result(self, pr):
 		cursor = self.conn.cursor()
 		query = "SELECT url, pr from pr where jobid="+str(self.jobid) + " and url in ('" + "','".join(pr.keys()) + "')"
-		print(query)
 		cursor.execute(query)
 		res = cursor.fetchall()
 		res = {x[0]:x[1] for x in res}
@@ -237,7 +243,6 @@ class PeerClient(threading.Thread):
 				pr[url]+=res[url]
 		query = "DELETE from PR WHERE jobid="+str(self.jobid)+" AND url in ('" + "','".join(pr.keys()) + "')"
 		cursor.execute(query)
-		print(pr)
 		values = [(self.jobid, k, pr[k]) for k in pr]
 		values_str = ",".join([str(x) for x in values])
 		query = "INSERT into PR(jobid, url, pr) values" + values_str
@@ -257,23 +262,19 @@ class PeerClient(threading.Thread):
 
 	def save_crawl_result(self, graph):
 		cursor = self.conn.cursor()
-
 		for url in graph:
 			print("started writing to db")
 			cursor.execute("SELECT link from graph where jobid="+str(self.jobid) + " and url='" + url + "'")
 			res = cursor.fetchone()
 			if res == None or len(res)==0:
-				query = "INSERT into graph(jobid, url, link) values("+str(self.jobid) + ",'" + url + "','" + ",".join(graph[url])[:8000] + "');"
-				print(query)
+				query = "INSERT into graph(jobid, url, link, nodeid) values("+str(self.jobid) + ",'" + url + "','" + ",".join(graph[url])[:8000] + "'," + str(int(self.node.id)-1) + ");"
 				cursor.execute(query)
 			else:
 				old_links = res[0]
-				query = "UPDATE graph SET link='" + (old_links + "," + ",".join(graph[url]))[:8000] + "' where url='"+url+"' and jobid=" + str(jobid)
-				print(query,)
+				query = "UPDATE graph SET link='" + (old_links + "," + ",".join(graph[url]))[:8000] + "',nodeid=" + str(int(self.node.id)-1) + " where url='"+url+"' and jobid=" + str(self.jobid) 
 				cursor.execute(query)
 			print("Finished writing 1 url to db")
 		query = "UPDATE crawl_status SET status=2 WHERE jobid="+str(self.jobid)+" AND url in ('"+ "','".join(graph.keys()) + "')"
-		print(query)
 		cursor.execute(query);
 		self.conn.commit()
 		cursor.close()
@@ -288,6 +289,8 @@ class PeerClient(threading.Thread):
 				
 	# crawl the input  
 	def crawl(self, jobid):
+		if int(jobid) == 0:
+			return
 		self.crawl_started = 1
 		self.jobid = jobid
 		node_id = int(self.node.id)-1
@@ -297,11 +300,7 @@ class PeerClient(threading.Thread):
 		for i in range(len(lines)):
 			if len(self.new_nodes_list)>0:
 				print("recalculating work")
-				if self.new_node == 1:
-					delegated_urls = lines[i:]
-					self.recalculate_work_for_new_node(delegated_urls)
-					break	
-				else:
+				if self.new_node == -1:
 					lines.extend(self.get_new_work())
 					self.new_nodes_list =  []
 					print("new work")
@@ -310,7 +309,6 @@ class PeerClient(threading.Thread):
 			c = Crawler([url], self.node.id)
 			self.set_crawl_status_started(url)
 			c.crawl()
-			#print(c.graph)
 			s_graph = sanitize(c.graph)
 			self.save_crawl_result(s_graph)
 		print("crawling for node: "+ self.node.id + " done")
