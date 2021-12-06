@@ -153,6 +153,7 @@ class PeerClient(threading.Thread):
 		elif data['message'] == PeerClient.crawl_msg:
 			self.crawl(data['value'])
 		elif data['message'] == PeerClient.new_crawl_msg:
+			self.new_node = 1
 			self.crawl(data['value'], 1)
 		elif data['message'] == PeerClient.pagerank_msg:
 			self.pagerank(data['value'])
@@ -205,11 +206,9 @@ class PeerClient(threading.Thread):
 			new_urls.extend(self.get_uncommitted_work(self.new_nodes_list[i].id, self.jobid))	
 		rank = self.get_rank()
 		tot_urls = len(new_urls)
-		# print(tot_urls)
 		cns = len(self.get_all_connected_nodes()) + 1
 		lrange = int(tot_urls/cns)*(rank)
 		urange = min(int(tot_urls/cns)*(rank+1),tot_urls)
-		# print("my rank" + str(rank) + " " + str(lrange) +  " " + str(urange) + self.node.id + str(cns))
 		return new_urls[lrange : urange]
 
 	def get_crawl_input(self, node_id, new_node=0):
@@ -298,7 +297,7 @@ class PeerClient(threading.Thread):
 		pr = Pagerank(no_urls, graph)
 		self.save_pagerank_result(pr)
 
-	def save_crawl_result(self, graph):
+	def save_crawl_result(self, graph, main_url):
 		cursor = self.conn.cursor()
 		for url in graph:
 			cursor.execute("SELECT link from graph where jobid="+str(self.jobid) + " and url='" + url + "'")
@@ -310,8 +309,9 @@ class PeerClient(threading.Thread):
 				old_links = res[0]
 				query = "UPDATE graph SET link='" + (old_links + "," + ",".join(graph[url]))[:8000] + "',nodeid=" + str(int(self.node.id)-1) + " where url='"+url+"' and jobid=" + str(self.jobid) 
 				cursor.execute(query)
-			query = "UPDATE crawl_status SET status=2, nodeid="+ str(int(self.node.id)-1) + " WHERE jobid="+str(self.jobid)+" AND url='" + url + "'" 
-			cursor.execute(query);
+		values = (self.jobid, main_url, 1, int(self.node.id)-1)
+		query = "INSERT INTO crawl_status(jobid, url, status, nodeid) VALUES " + str(values) 
+		cursor.execute(query);
 		self.conn.commit()
 		cursor.close()
 
@@ -339,8 +339,9 @@ class PeerClient(threading.Thread):
 		self.jobid = jobid
 		node_id = int(self.node.id)-1
 		lines = self.get_crawl_input(node_id, new_node)
-
-		for i in range(len(lines)):
+		i=-1
+		while i < (len(lines)) - 1:
+			i+=1
 			if len(self.new_nodes_list)>0:
 				if self.new_node == -1:
 					print("recalculating work")
@@ -357,10 +358,9 @@ class PeerClient(threading.Thread):
 					continue
 			url = lines[i].strip()
 			c = Crawler([url], self.node.id)
-			self.set_crawl_status_started(url)
 			c.crawl()
 			s_graph = sanitize(c.graph)
-			self.save_crawl_result(s_graph)
+			self.save_crawl_result(s_graph, lines[i])
 		self.set_crawl_done_info()
 		print("crawling for node: "+ self.node.id + " done")
 		if int(self.node.id) != PeerClient.master_node_id:
