@@ -28,19 +28,19 @@ driver= '{ODBC Driver 17 for SQL Server}'
 CONNECTION_STRING = 'DRIVER='+driver+';SERVER='+server+';DATABASE='+databaseName+';UID='+username+';PWD='+ password
 
 conn = pyodbc.connect(CONNECTION_STRING)
-
 cursor = conn.cursor()
-#cursor.execute('SELECT * FROM features')
 
-# for i in cursor:
-#     print(i)
-
-final_crawl_output_file = PeerClient.output_dir + "/" + "_crawl_output.json"
 
 def stop_node(node):
 	if node is not None:
 		node.stop()
-		node.join()
+
+def set_master_node(master_ip):
+	cursor = conn.cursor()
+	query = "UPDATE leader_node SET master_ip='" + master_ip + "'"
+	cursor.execute(query);
+	cursor.commit()
+	cursor.close()
 
 def send_crawl(master_node, input_file):
 	msg = PeerClient.msg
@@ -65,6 +65,7 @@ def send_crawl(master_node, input_file):
 	print("master to peer crawling done!")
 	while(False == master_node.check_if_crawl_is_done()):
 		time.sleep(5)
+		print("checking if nodes are done")
 		
 	master_node.crawl_started = 0
 
@@ -101,19 +102,15 @@ def send_pagerank(master_node, jobid):
 def main():
 	master_node = None
 	try:
-		# host_ip = sys.argv[1].split(':')[0]
-		# host_port = int(sys.argv[1].split(':')[1])
 
 		host_ip = "127.0.0.1"
 		host_port = 8000
 
-		master_node = PeerClient(host_ip, host_port, PeerClient.master_node_id, True)
+		set_master_node(host_ip+":"+str(host_port))
+
+		master_node = PeerClient(host_ip, host_port, PeerClient.master_node_id, False)
 		master_node.start()	
-		# query = "drop table if exists graph;CREATE TABLE graph (id int IDENTITY (1,1) NOT NULL,jobid int NOT NULL,url varchar(2000),link varchar(8000));"
-		# cursor = conn.cursor()
-		# cursor.execute(query)
-		# conn.commit()
-		# cursor.close()
+
 		while 1:
 			s = input()
 			if s == 'q' :
@@ -125,7 +122,7 @@ def main():
 
 	except Exception as e:
 		print("some error occurred ----------------")
-		traceback.print_exception()
+		traceback.print_exc()
 		stop_node(master_node)
 		os._exit(1)
 

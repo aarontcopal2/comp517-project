@@ -22,7 +22,7 @@ class Crawler:
 
 
     def crawl(self):
-        time.sleep(1)
+        time.sleep(10)
         # append the urls to urls set
         for url in self.user_inputs:
             self.urls.add(url)
@@ -37,13 +37,13 @@ class Crawler:
                     response = requests.get(url, headers=headers)
                 except (requests.exceptions.InvalidSchema, ssl.SSLError, urllib3.exceptions.MaxRetryError,
                         requests.exceptions.SSLError, requests.exceptions.ConnectionError) as e:
-                    print(e)
+                    # print(e)
                     self.failed_urls.add(url)
                     continue
 
                 # check if response is valid
                 if response.status_code != 200:
-                    print("error fetching page: " + str(response.status_code))
+                    print("error fetching page: " + str(response.status_code) + " " + url)
                     self.failed_urls.add(url)
                     continue
 
@@ -79,10 +79,10 @@ class Crawler:
         # for url in self.completed_urls:
         #     print(url)
 
-        print("\nfailed urls: ")
+        # print("\nfailed urls: ")
         # print list of failed urls
-        for url in self.failed_urls:
-            print(url)
+        # for url in self.failed_urls:
+        #     print(url)
 
         # print("\ngraph output: ")
         # print(self.graph)

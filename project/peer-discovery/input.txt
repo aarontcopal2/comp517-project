@@ -3,4 +3,6 @@ https://www.facebook.com
 https://www.github.com
 https://www.google.com
 https://www.stackoverflow.com
-https://www.amazon.com
+https://www.hulu.com
+https://www.cricbuzz.com
+https://www.netflix.com
