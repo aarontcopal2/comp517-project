@@ -63,16 +63,16 @@ Research Focus Statement:
 Team Name:
 
 Team Member: 
-  - Name:
-  - Rice ID:
+  - Name: Pratik Satish
+  - Rice ID: ps74
 
 Team Member: 
-  - Name:
-  - Rice ID:
+  - Name: Aniket Gattani
+  - Rice ID: aag9
   
 Team Member: 
-  - Name:
-  - Rice ID:
+  - Name: Aaron Thomas Cherian
+  - Rice ID: atc8
 
 ## Turning in Instructions
 
